@@ -88,28 +88,38 @@ with sync_playwright() as p:
 		time.sleep(1)
 		page.mouse.click(History_tab_box['x'], History_tab_box['y'] - 20, button='left')
 
+		print('Waiting 10 seconds for the page to load further')
+		time.sleep(10)
 
-		html = page.evaluate("document.documentElement.outerHTML") # get the html of the page, up to date
-		# save html soup to html file
-		with open(f'SAMPLE-{browser_type.name}.html', 'w') as f:
-			f.write(html)
+		html = page.evaluate("document.documentElement.outerHTML")
 
-		tables = pd.read_html(io="SAMPLE-firefox.html", match='Deal', header=0, index_col=0)
-		print(tables)
-		df1 = tables[0]
+		deals_div = page.query_selector(selector = 'div.at-history-deals-table')
+		deals_table = pd.read_html(io=deals_div.inner_html(), match='Deal', header=0, index_col=0,)
+		print(deals_table[0])
+
+		df1 = deals_table[0]
 		# remove all rows from the dataframe
 		df1.drop(df1.index, inplace=True)
 
+
+		# html = page.evaluate("document.documentElement.outerHTML") # get the html of the page, up to date
+		# # save html soup to html file
+		# with open(f'SAMPLE-{browser_type.name}.html', 'w') as f:
+		# 	f.write(html)
+
+		# tables = pd.read_html(io="SAMPLE-firefox.html", match='Deal', header=0, index_col=0)
+		# print(tables)
+		# df1 = tables[0]
+		# # remove all rows from the dataframe
+		# df1.drop(df1.index, inplace=True)
+
 		# print(df1)
-# div.ext-table:nth-child(2) > div:nth-child(2) > table:nth-child(1) > thead:nth-child(1) > tr:nth-child(1) > th:nth-child(1)
-# html body.gecko.win.gray div.page-block.frame.bottom div.page-block div.ext-table.fixed.odd.grid.no-border.trade-table.toolbox-table.at-history-deals-table div.tables-box table thead tr th#time.sortable.sort-down
 		scroll_interval = 5
 
 		bottom_table = False
 		loop_count = 0
 		print('Now scrolling through the deals table to grab all the deals rows')
 		print('Waiting 10 seconds for the page table to load further')
-		time.sleep(30)
 		time_sort = page.locator(selector = 'html body.gecko.win.gray div.page-block.frame.bottom div.page-block div.ext-table.fixed.odd.grid.no-border.trade-table.toolbox-table.at-history-deals-table div.tables-box table thead tr th#time.sortable.sort-down')
 		time_sort.click()
 		time_sort = page.locator(selector = 'html body.gecko.win.gray div.page-block.frame.bottom div.page-block div.ext-table.fixed.odd.grid.no-border.trade-table.toolbox-table.at-history-deals-table div.tables-box table thead tr th#time.sortable.sort-up')
@@ -144,6 +154,7 @@ with sync_playwright() as p:
 				if not (row['Deal'], int): # checks if the row is not a number, if it is not a number, it drops the row
 					df1 = df1.drop(index)
 
+			# ====================
 			# with open(f'SAMPLE-{browser_type.name}.html', 'w') as f:
 			# 	f.write(html)
 
@@ -155,11 +166,12 @@ with sync_playwright() as p:
 			# 		df2 = df2.drop(index)
 
 			# df1 = pd.concat([df1, df2]).drop_duplicates(subset=['Deal'], keep='first')
+			# ====================
 
 			time.sleep(0.05)
 
 		# delete the file
-		os.remove(f'SAMPLE-{browser_type.name}.html')
+		# os.remove(f'SAMPLE-{browser_type.name}.html')
 		# save df1 to csv file
 		print(f'Removing the last row from the dataframe: {df1.tail(1)}')
 		df1 = df1.drop(df1.tail(1).index)
@@ -187,7 +199,12 @@ with sync_playwright() as p:
 		# df1['Profit'] = df1['Profit'].astype(float)
 
 		print('Saving the dataframe to markdown file')
-		df1.to_markdown(f'SAMPLE-{browser_type.name}.md', index=True)
+		df1.to_markdown(f'SAMPLE-{browser_type.name}.md', index=True, encoding='utf-8')
+
+		# convert the dataframe to csv utf-8
+		print('Saving the dataframe to csv file')
+		df1.to_csv(f'SAMPLE-{browser_type.name}.csv', index=True, encoding='utf-8')
+
 		print(df1)
 
 		browser.close()
