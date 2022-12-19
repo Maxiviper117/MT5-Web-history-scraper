@@ -4,16 +4,20 @@ from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 import pandas as pd
 
-login = "88394128"
-password = "wRQpXRG!Y583fz$"
-server = "Ava-Real 1-MT5"
+# login = "88394128"
+# password = "wRQpXRG!Y583fz$"
+# server = "Ava-Real 1-MT5"
+
+login = "1006296"
+password = "5dvmwece"
+server = "Eightcap-Demo"
 
 with sync_playwright() as p:
 	for browser_type in [
 		p.firefox,
 		# p.webkit
 		]:
-		browser = browser_type.launch(headless=True, slow_mo=50)
+		browser = browser_type.launch(headless=False, slow_mo=50)
 		page = browser.new_page()
 		page.goto('https://trade.mql5.com/trade?version=5')
 		# chech if 'button[id="accept"]' is visible
@@ -27,6 +31,18 @@ with sync_playwright() as p:
 
 		time.sleep(1)
 		page.click("button.input-button:nth-child(20)") # click 'ok' button to login
+
+		############
+		# print()
+		# # page.evaluate("document.documentElement.outerHTML")
+		# print()
+		# deals_div = page.query_selector(selector = 'div.at-history-deals-table')
+		# deals_table = pd.read_html(io=deals_div.inner_html(), match='Deal', header=0, index_col=0,)
+		# print(deals_table[0])
+		# print(deals_div.inner_html())
+		# with open(f'ttt-{browser_type.name}.html', 'w') as f:
+		# 	f.write(deals_div.inner_html())
+		############
 
 		# time.sleep(15)
 		# Selecting history tab then right click on the table body
@@ -85,12 +101,23 @@ with sync_playwright() as p:
 		df1.drop(df1.index, inplace=True)
 
 		# print(df1)
-
+# div.ext-table:nth-child(2) > div:nth-child(2) > table:nth-child(1) > thead:nth-child(1) > tr:nth-child(1) > th:nth-child(1)
+# html body.gecko.win.gray div.page-block.frame.bottom div.page-block div.ext-table.fixed.odd.grid.no-border.trade-table.toolbox-table.at-history-deals-table div.tables-box table thead tr th#time.sortable.sort-down
 		scroll_interval = 5
-		element_found = False
+
+		bottom_table = False
 		loop_count = 0
 		print('Now scrolling through the deals table to grab all the deals rows')
-		while not element_found:
+		print('Waiting 10 seconds for the page table to load further')
+		time.sleep(30)
+		time_sort = page.locator(selector = 'html body.gecko.win.gray div.page-block.frame.bottom div.page-block div.ext-table.fixed.odd.grid.no-border.trade-table.toolbox-table.at-history-deals-table div.tables-box table thead tr th#time.sortable.sort-down')
+		time_sort.click()
+		time_sort = page.locator(selector = 'html body.gecko.win.gray div.page-block.frame.bottom div.page-block div.ext-table.fixed.odd.grid.no-border.trade-table.toolbox-table.at-history-deals-table div.tables-box table thead tr th#time.sortable.sort-up')
+		time_sort.click()
+
+		page.mouse.click(History_tab_box['x'], History_tab_box['y'] - 20, button='left') # right click 20 pixels above the element, this should be in the table body.
+
+		while not bottom_table:
 			print(f'Scrolling the page {loop_count} times')
 			if loop_count > 0:
 				# Scroll the page
@@ -98,29 +125,38 @@ with sync_playwright() as p:
 
 			loop_count += 1
 
-			# Check if the element is visible
-			# locate by class name
-			if page.is_visible(selector='tr#total.total.filled'):
-				element_found = True
-
 			html = page.evaluate("document.documentElement.outerHTML")
 
 			# save html soup to html file, overwrite the file and overwrite the file
-			# save html soup to html file, overwrite the file
 
-			with open(f'SAMPLE-{browser_type.name}.html', 'w') as f:
-				f.write(html)
-
-			tables = pd.read_html(io="SAMPLE-firefox.html", match='Deal', header=0, index_col=0,)
-			df2 = tables[0]
-			for index, row in df2.iterrows(): # iterates over the rows in your dataframe
-				# check if the row is not of type int
-				if not (row['Deal'], int): # checks if the row is not a number, if it is not a number, it drops the row
-					df2 = df2.drop(index)
-
+			deals_div = page.query_selector(selector = 'div.at-history-deals-table')
+			deals_table = pd.read_html(io=deals_div.inner_html(), match='Deal', header=0, index_col=0,)
+			df2 = deals_table[0]
 			df1 = pd.concat([df1, df2]).drop_duplicates(subset=['Deal'], keep='first')
 
-			time.sleep(0.2)
+			for index, row in df2.iterrows():
+				# print(index)
+				if 'Profit:' in str(index):
+					bottom_table = True
+
+			for index, row in df1.iterrows(): # iterates over the rows in your dataframe
+				# check if the row is not of type int
+				if not (row['Deal'], int): # checks if the row is not a number, if it is not a number, it drops the row
+					df1 = df1.drop(index)
+
+			# with open(f'SAMPLE-{browser_type.name}.html', 'w') as f:
+			# 	f.write(html)
+
+			# tables = pd.read_html(io="SAMPLE-firefox.html", match='Deal', header=0, index_col=0,)
+			# df2 = tables[0]
+			# for index, row in df2.iterrows(): # iterates over the rows in your dataframe
+			# 	# check if the row is not of type int
+			# 	if not (row['Deal'], int): # checks if the row is not a number, if it is not a number, it drops the row
+			# 		df2 = df2.drop(index)
+
+			# df1 = pd.concat([df1, df2]).drop_duplicates(subset=['Deal'], keep='first')
+
+			time.sleep(0.05)
 
 		# delete the file
 		os.remove(f'SAMPLE-{browser_type.name}.html')

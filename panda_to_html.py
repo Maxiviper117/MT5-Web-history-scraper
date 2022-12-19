@@ -4,11 +4,11 @@ import pandas as pd
 
 from bs4 import BeautifulSoup
 # use beautiful soup to parse html
-soup = BeautifulSoup(open('SAMPLE-firefox.html'), 'html5lib')
+soup = BeautifulSoup(open('ttt-firefox.html'), 'html5lib')
 # print(soup.prettify())
 tables = pd.read_html(
 	# io='mt5_web_html.html',
-	io='SAMPLE-firefox.html',
+	io='ttt-firefox.html',
 	# io=soup,
 	match='Deal',
 	header=0,
@@ -16,9 +16,24 @@ tables = pd.read_html(
 	# flavor='bs4',
 	)
 
-print(tables)
+print(tables[0])
 
-df = tables[1]
+
+
+df = tables[0]
+
+# print the second last row index value
+print(df.index[-2])
+
+# loop through each row of the dataframe and if index contains 'Profit:' remove row.
+for index, row in df.iterrows():
+	print(index)
+	if 'Profit:' in str(index) or 'nan' in str(index).lower():
+		df = df.drop(index)
+
+
+
+print(df)
 
 # print each row of the dataframe
 for index, row in df.iterrows():
